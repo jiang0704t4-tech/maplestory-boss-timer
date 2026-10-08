@@ -165,6 +165,22 @@
       box-shadow: 0 0.5px 0 #450a0a;
     }
 
+    .btn-help {
+      background: linear-gradient(180deg, #93c5fd 0%, #2563eb 100%);
+      border: 1.5px solid #1e3a8a;
+      border-radius: 7px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 3px 6px;
+      box-shadow: 0 1.5px 0 #172554;
+      cursor: pointer;
+    }
+    .btn-help:active {
+      transform: translateY(1px);
+      box-shadow: 0 0.5px 0 #172554;
+    }
+
     .sub-bar {
       flex-shrink: 0;
       display: flex;
@@ -338,7 +354,7 @@
       100% { transform: scale(0.98, 1.03); filter: brightness(1.35); }
     }
 
-    /* 彈窗 UI */
+    /* 羊皮紙彈窗 UI */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -430,6 +446,7 @@
         <span class="unit-text">秒</span>
       </div>
       <button class="btn-wood-danger" onclick="resetAll()">重置</button>
+      <button class="btn-help" onclick="openHelpModal()">❓</button>
     </div>
   </header>
 
@@ -446,7 +463,6 @@
   </div>
 
   <div class="recent-queue-wrapper" id="recentQueue">
-    <!-- 預留固定 5 個槽位，徹底避免重繪瞬間誤觸 -->
     <div class="q-btn empty" id="qslot-0"><span class="q-name">--</span></div>
     <div class="q-btn empty" id="qslot-1"><span class="q-name">--</span></div>
     <div class="q-btn empty" id="qslot-2"><span class="q-name">--</span></div>
@@ -456,15 +472,58 @@
 
   <div class="grid-container" id="gridContainer"></div>
 
-  <!-- 房間設定彈窗 -->
+  <!-- 房間設定/退出彈窗 -->
   <div class="modal-overlay" id="roomModal" onclick="if(event.target===this)closeRoomModal()">
     <div class="ms-scroll-card">
-      <h3 style="font-size:15px; font-weight:900; margin-bottom:10px; text-align:center;">📜 組隊連線同步房間</h3>
-      <input type="text" id="roomCodeInput" maxlength="6" placeholder="輸入 6 位房間碼" style="width:100%; padding:8px; background:#fff; border:2px solid #8d5b28; color:#3e2712; border-radius:8px; font-size:18px; font-weight:900; text-align:center; letter-spacing:4px; margin-bottom:10px; font-family:'Fredoka';">
-      <div style="display:flex; gap:6px;">
-        <button onclick="joinRoom(document.getElementById('roomCodeInput').value)" style="flex:1; padding:8px; background:linear-gradient(180deg, #4ade80 0%, #16a34a 100%); border:1.5px solid #14532d; color:#fff; border-radius:8px; font-weight:900; box-shadow:0 1.5px 0 #14532d;">進入房間</button>
-        <button onclick="closeRoomModal()" style="padding:8px 12px; background:linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%); border:1.5px solid #64748b; color:#334155; border-radius:8px; font-weight:900;">關閉</button>
+      <h3 style="font-size:15px; font-weight:900; margin-bottom:10px; text-align:center;" id="roomModalTitle">📜 組隊連線同步房間</h3>
+      
+      <!-- 未連線狀態 -->
+      <div id="unconnectedArea">
+        <input type="text" id="roomCodeInput" maxlength="6" placeholder="輸入 6 位房間碼" style="width:100%; padding:8px; background:#fff; border:2px solid #8d5b28; color:#3e2712; border-radius:8px; font-size:18px; font-weight:900; text-align:center; letter-spacing:4px; margin-bottom:10px; font-family:'Fredoka';">
+        <div style="display:flex; gap:6px;">
+          <button onclick="joinRoom(document.getElementById('roomCodeInput').value)" style="flex:1; padding:8px; background:linear-gradient(180deg, #4ade80 0%, #16a34a 100%); border:1.5px solid #14532d; color:#fff; border-radius:8px; font-weight:900; box-shadow:0 1.5px 0 #14532d; cursor:pointer;">進入房間</button>
+          <button onclick="closeRoomModal()" style="padding:8px 12px; background:linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%); border:1.5px solid #64748b; color:#334155; border-radius:8px; font-weight:900; cursor:pointer;">關閉</button>
+        </div>
       </div>
+
+      <!-- 已連線狀態 -->
+      <div id="connectedArea" style="display:none; text-align:center;">
+        <div style="font-size:13px; font-weight:800; color:#15803d; margin-bottom:12px;">
+          目前連線房間：<span id="currentRoomText" style="font-size:18px; font-family:'Fredoka'; font-weight:900;"></span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button onclick="copyRoomLink()" style="padding:8px; background:linear-gradient(180deg, #60a5fa 0%, #2563eb 100%); border:1.5px solid #1e3a8a; color:#fff; border-radius:8px; font-weight:900; box-shadow:0 1.5px 0 #1e3a8a; cursor:pointer;">📋 複製邀請連結給隊友</button>
+          <button onclick="leaveRoom()" style="padding:8px; background:linear-gradient(180deg, #f87171 0%, #dc2626 100%); border:1.5px solid #991b1b; color:#fff; border-radius:8px; font-weight:900; box-shadow:0 1.5px 0 #7f1d1d; cursor:pointer;">🚪 退出組隊房間 (回到單機)</button>
+          <button onclick="closeRoomModal()" style="padding:6px; background:#64748b; border:1px solid #334155; color:#fff; border-radius:8px; font-size:11px; font-weight:900; cursor:pointer;">關閉</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 說明彈窗 -->
+  <div class="modal-overlay" id="helpModal" onclick="if(event.target===this)closeHelpModal()">
+    <div class="ms-scroll-card" style="max-height:85dvh; display:flex; flex-direction:column;">
+      <h3 style="font-size:15px; font-weight:900; margin-bottom:8px; text-align:center;">🍁 使用說明指南</h3>
+      <div style="flex:1; overflow-y:auto; font-size:11.5px; line-height:1.6; color:#4a2e12; display:flex; flex-direction:column; gap:8px; padding-right:4px;">
+        <div style="background:#fff; border:1px solid #d4b483; border-radius:6px; padding:6px;">
+          <strong>🎯 基本操作</strong><br>
+          • <strong>單擊任一頻道</strong>：直接開始倒數（擊殺數 +1）。<br>
+          • <strong>王重生後再按一下</strong>：直接重新跑冷卻計時（擊殺數 +1）。<br>
+          • <strong>長按 0.7 秒</strong>：重置該頻道為 Ready 預備狀態（不計擊殺）。
+        </div>
+        <div style="background:#fff; border:1px solid #d4b483; border-radius:6px; padding:6px;">
+          <strong>🔥 頂部重生佇列（前 5 格）</strong><br>
+          • 自動排列最接近重生的前 5 個頻道（左近右遠）。<br>
+          • 點擊可直接重跑計時，長按 0.7 秒可重置回 Ready。
+        </div>
+        <div style="background:#fff; border:1px solid #d4b483; border-radius:6px; padding:6px;">
+          <strong>👥 組隊連線機制</strong><br>
+          • 點擊左上角「連線」輸入 6 位數房間碼。<br>
+          • <strong>新加入組隊者會自動跟隨房間既有進度</strong>，絕不會洗白隊友的時間！<br>
+          • 可點房間代碼一鍵複製邀請連結給隊友。
+        </div>
+      </div>
+      <button onclick="closeHelpModal()" style="margin-top:10px; padding:7px; background:#5b3717; border:none; color:#fde047; border-radius:8px; font-size:12px; font-weight:900; cursor:pointer;">我知道了！</button>
     </div>
   </div>
 
@@ -477,8 +536,8 @@
       </div>
       <div id="killGrid" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(5, 1fr); gap:4px; padding:4px; background:#fffcf5; border:1px solid #d4b483; border-radius:6px; margin-bottom:10px;"></div>
       <div style="display:flex; gap:6px;">
-        <button onclick="resetKills()" style="padding:6px 10px; background:#f87171; border:1.5px solid #991b1b; color:#fff; border-radius:6px; font-size:11px; font-weight:900;">清空擊殺</button>
-        <button onclick="closeKillModal()" style="flex:1; padding:6px; background:#64748b; border:1.5px solid #334155; color:#fff; border-radius:6px; font-size:11px; font-weight:900;">關閉</button>
+        <button onclick="resetKills()" style="padding:6px 10px; background:#f87171; border:1.5px solid #991b1b; color:#fff; border-radius:6px; font-size:11px; font-weight:900; cursor:pointer;">清空擊殺</button>
+        <button onclick="closeKillModal()" style="flex:1; padding:6px; background:#64748b; border:1.5px solid #334155; color:#fff; border-radius:6px; font-size:11px; font-weight:900; cursor:pointer;">關閉</button>
       </div>
     </div>
   </div>
@@ -496,7 +555,7 @@
     let currentRoom = localStorage.getItem('ms_room') || '';
     let mqttClient = null;
 
-    // 🌟 全域防連點鎖（防止手機換位連鎖觸發）
+    // 🌟 全域防連點鎖
     let globalActionLockUntil = 0;
 
     const inputMin = document.getElementById('inputMin');
@@ -516,7 +575,7 @@
       localStorage.setItem('ms_kills', JSON.stringify(kills));
     }
 
-    // 觸發
+    // 觸發第 471 隻彩蛋
     function triggerEasterEgg() {
       if (document.getElementById('easterEggOverlay')) return;
 
@@ -574,11 +633,10 @@
       }
     }
 
-    // 核心點擊處理函式（帶全域 350ms 冷卻鎖定）
     function handleChannelClick(ch) {
       const now = Date.now();
-      if (now < globalActionLockUntil) return; // 鎖定中，拒絕執行
-      globalActionLockUntil = now + 350; // 上鎖 350ms
+      if (now < globalActionLockUntil) return;
+      globalActionLockUntil = now + 350;
 
       const prevTotal = kills.reduce((a, b) => a + b, 0);
       targets[ch] = now + getDurationSec() * 1000;
@@ -636,7 +694,7 @@
       container.appendChild(btn);
     }
 
-    // 初始化頂部 5 個佇列卡槽的點擊/長按事件（常駐監聽，不隨排序銷毀）
+    // 初始化頂部 5 個佇列卡槽
     const topSlots = [];
     for (let i = 0; i < 5; i++) {
       const slot = document.getElementById(`qslot-${i}`);
@@ -736,7 +794,6 @@
       activeList.sort((a, b) => a.remain - b.remain);
       const top5 = activeList.slice(0, 5);
 
-      // 更新頂部 5 個固定槽位（絕不銷毀 DOM，保證不跑位觸發連點）
       for (let i = 0; i < 5; i++) {
         const slot = topSlots[i];
         const item = top5[i];
@@ -756,6 +813,7 @@
       }
     }
 
+    // MQTT 組隊同步邏輯修復：請求與應答模式（絕不蓋台）
     function syncBroadcast(ch, target, isKill) {
       if (!mqttClient || !currentRoom) return;
       mqttClient.publish(`maple/room/${currentRoom}`, JSON.stringify({
@@ -766,7 +824,7 @@
     function syncBroadcastAll() {
       if (!mqttClient || !currentRoom) return;
       mqttClient.publish(`maple/room/${currentRoom}`, JSON.stringify({
-        type: 'full', targets, kills
+        type: 'full_sync_response', targets, kills
       }));
     }
 
@@ -774,14 +832,13 @@
       if (mqttClient) mqttClient.end();
       currentRoom = room;
       localStorage.setItem('ms_room', room);
-      const roomBtn = document.getElementById('roomBtn');
-      roomBtn.className = 'ms-badge connected';
-      roomBtn.textContent = `🟢 ${room}`;
+      updateRoomUI(true, room);
 
       mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
       mqttClient.on('connect', () => {
         mqttClient.subscribe(`maple/room/${room}`);
-        syncBroadcastAll();
+        // 🌟 新進房間者只發送同步請求，不主動發送自己的空數據
+        mqttClient.publish(`maple/room/${room}`, JSON.stringify({ type: 'request_sync' }));
       });
 
       mqttClient.on('message', (t, p) => {
@@ -789,15 +846,24 @@
           const d = JSON.parse(p.toString());
           const prevTotal = kills.reduce((a, b) => a + b, 0);
 
-          if (d.type === 'single') {
-            targets[d.ch] = d.target;
-            if (d.kills !== undefined) kills[d.ch] = d.kills;
+          if (d.type === 'request_sync') {
+            // 房間裡已在線的人，把當前最新數據回覆給新來的人
+            const hasActive = targets.some(t => t > 0);
+            if (hasActive) {
+              mqttClient.publish(`maple/room/${currentRoom}`, JSON.stringify({
+                type: 'full_sync_response', targets, kills
+              }));
+            }
+          } else if (d.type === 'full_sync_response') {
+            // 接收到房內隊友同步過來的完整資料
+            targets = d.targets;
+            if (d.kills) kills = d.kills;
             saveLocal();
             updateKillBadges(prevTotal);
             render();
-          } else if (d.type === 'full') {
-            targets = d.targets;
-            if (d.kills) kills = d.kills;
+          } else if (d.type === 'single') {
+            targets[d.ch] = d.target;
+            if (d.kills !== undefined) kills[d.ch] = d.kills;
             saveLocal();
             updateKillBadges(prevTotal);
             render();
@@ -806,17 +872,66 @@
       });
     }
 
-    function openRoomModal() { document.getElementById('roomModal').style.display = 'flex'; }
-    function closeRoomModal() { document.getElementById('roomModal').style.display = 'none'; }
-    function joinRoom(val) {
-      if (val && val.length === 6) {
-        initMQTT(val);
-        closeRoomModal();
+    function updateRoomUI(isConnected, room = '') {
+      const roomBtn = document.getElementById('roomBtn');
+      const unconnectedArea = document.getElementById('unconnectedArea');
+      const connectedArea = document.getElementById('connectedArea');
+      const currentRoomText = document.getElementById('currentRoomText');
+
+      if (isConnected) {
+        roomBtn.className = 'ms-badge connected';
+        roomBtn.textContent = `🟢 ${room}`;
+        unconnectedArea.style.display = 'none';
+        connectedArea.style.display = 'block';
+        currentRoomText.textContent = room;
       } else {
-        alert('請輸入 6 位房間密碼');
+        roomBtn.className = 'ms-badge';
+        roomBtn.textContent = '🔗 連線';
+        unconnectedArea.style.display = 'block';
+        connectedArea.style.display = 'none';
       }
     }
 
+    function openRoomModal() {
+      updateRoomUI(!!currentRoom, currentRoom);
+      document.getElementById('roomModal').style.display = 'flex';
+    }
+    function closeRoomModal() { document.getElementById('roomModal').style.display = 'none'; }
+
+    function joinRoom(val) {
+      if (val && val.trim().length === 6) {
+        initMQTT(val.trim());
+        closeRoomModal();
+      } else {
+        alert('請輸入 6 位數字或英文房間碼');
+      }
+    }
+
+    function leaveRoom() {
+      if (confirm('確定退出目前組隊房間？退出後將回到本機單機模式。')) {
+        if (mqttClient) mqttClient.end();
+        mqttClient = null;
+        currentRoom = '';
+        localStorage.removeItem('ms_room');
+        updateRoomUI(false);
+        closeRoomModal();
+      }
+    }
+
+    function copyRoomLink() {
+      const url = `${window.location.origin}${window.location.pathname}?room=${currentRoom}`;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => alert('✅ 房間邀請連結已複製！貼給隊友點開即可直接進房。'));
+      } else {
+        alert(`請將此連結複製給隊友：\n${url}`);
+      }
+    }
+
+    // 說明彈窗
+    function openHelpModal() { document.getElementById('helpModal').style.display = 'flex'; }
+    function closeHelpModal() { document.getElementById('helpModal').style.display = 'none'; }
+
+    // 擊殺統計彈窗
     function openKillModal() {
       renderKillGrid();
       document.getElementById('killModal').style.display = 'flex';
@@ -833,7 +948,15 @@
       }
     }
 
-    if (currentRoom) initMQTT(currentRoom);
+    // 自動偵測網址參數 ?room=XXXXXX 自動進房
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramRoom = urlParams.get('room');
+    if (paramRoom && paramRoom.length === 6) {
+      initMQTT(paramRoom);
+    } else if (currentRoom) {
+      initMQTT(currentRoom);
+    }
+
     updateKillBadges();
     setInterval(render, 1000);
     render();
