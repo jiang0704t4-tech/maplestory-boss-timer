@@ -1,0 +1,17 @@
+{
+  "name": "楓之谷 Boss 重生計時器",
+  "short_name": "Boss計時器",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#2b1808",
+  "theme_color": "#5b3b18",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
